@@ -1,7 +1,8 @@
 require 'algorithms'
 
-# Each 'way' is assumpted as sorted. 
+# dependency: gem i algorithm
 
+# Each 'way' is assumpted as has already been sorted. 
 class NWayMerger
   def initialize(files)
     @heap = Containers::Heap.new {|a, b| (a[0] <=> b[0]) == -1 }
