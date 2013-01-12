@@ -43,10 +43,12 @@ static struct dst_node** __dst_find_r(struct dst_node **npp, dst_key_t key, dst_
 {
     struct dst_node **nextpp;
 
-    if (*npp == NULL || eor) 
+    if (*npp == NULL)
         return npp;
     if (key == (*npp)->key)
         return npp;
+    if (eor)
+        assert(! "bug: bit should not be 0");
     // printf("key: %x\n", key);
     // printf("bit: %x\n", bit);
     // printf("key & bit: %d\n", key & bit);
