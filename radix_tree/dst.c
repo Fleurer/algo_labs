@@ -47,6 +47,9 @@ static struct dst_node** __dst_find_r(struct dst_node **npp, dst_key_t key, dst_
         return npp;
     if (key == (*npp)->key)
         return npp;
+    // printf("key: %x\n", key);
+    // printf("bit: %x\n", bit);
+    // printf("key & bit: %d\n", key & bit);
     nextpp = &(*npp)->children[!!(key & bit)];
     return __dst_find_r(nextpp, key, bit >> 1, bit == 0);
 }
