@@ -34,23 +34,24 @@ struct dst_node* dst_node_new(dst_key_t key, dst_val_t val)
     return np;
 }
 
-static struct dst_node** __dst_find_r(struct dst_node **npp, dst_key_t key, dst_key_t bit) 
+static struct dst_node** __dst_find_r(struct dst_node **npp, dst_key_t key, dst_key_t bit, unsigned eor) 
 {
-    if (bit == 0)
-        assert(! "bug: bit should not be 0");
-    if (*npp == NULL) 
+    struct dst_node **nextpp;
+
+    if (*npp == NULL || eor) 
         return npp;
     if (key == (*npp)->key)
         return npp;
     if (key & bit) 
-        return __dst_find_r(&((*npp)->right), key, bit >> 1);
+        nextpp = &(*npp)->right;
     else
-        return __dst_find_r(&((*npp)->left), key, bit >> 1);
+        nextpp = &(*npp)->left;
+    return __dst_find_r(nextpp, key, bit >> 1, bit == 0);
 }
 
 struct dst_node* dst_find(struct dst_node *np, dst_key_t key) 
 {
-    return *__dst_find_r(&np, key, BIT_MSD);
+    return *__dst_find_r(&np, key, BIT_MSD, 0);
 }
 
 struct dst_node* dst_insert(struct dst_node *np, dst_key_t key, dst_val_t val) 
@@ -58,7 +59,7 @@ struct dst_node* dst_insert(struct dst_node *np, dst_key_t key, dst_val_t val)
     struct dst_node **npp;
     struct dst_node *new_np;
 
-    npp = __dst_find_r(&np, key, BIT_MSD);
+    npp = __dst_find_r(&np, key, BIT_MSD, 0);
     if (*npp == NULL) {
         new_np = dst_node_new(key, val);
         *npp = new_np;
