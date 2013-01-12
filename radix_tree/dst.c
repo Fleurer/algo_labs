@@ -17,11 +17,13 @@ typedef int32_t dst_val_t;
 #define NBIT 32
 #define BIT_MSD (1 << (NBIT - 1))
 
+#define DST_LEFT 0
+#define DST_RIGHT 1
+
 struct dst_node {
     dst_key_t key;
     dst_val_t val;
-    struct dst_node *left;
-    struct dst_node *right;
+    struct dst_node *children[2];
 };
 
 struct dst_node* dst_node_new(dst_key_t key, dst_val_t val) 
@@ -29,8 +31,8 @@ struct dst_node* dst_node_new(dst_key_t key, dst_val_t val)
     struct dst_node *np;
 
     np = (struct dst_node*)malloc(sizeof(struct dst_node));
-    np->left = NULL;
-    np->right = NULL;
+    np->children[DST_LEFT] = NULL;
+    np->children[DST_RIGHT] = NULL;
     np->key = key;
     np->val = val;
     return np;
@@ -45,10 +47,7 @@ static struct dst_node** __dst_find_r(struct dst_node **npp, dst_key_t key, dst_
         return npp;
     if (key == (*npp)->key)
         return npp;
-    if (key & bit) 
-        nextpp = &(*npp)->right;
-    else
-        nextpp = &(*npp)->left;
+    nextpp = &(*npp)->children[!!(key & bit)];
     return __dst_find_r(nextpp, key, bit >> 1, bit == 0);
 }
 
@@ -77,17 +76,21 @@ static void __test()
 {
     struct dst_node *dst, *np;
 
-    dst = dst_node_new(1, 1);
+    dst = dst_node_new(2, 1);
     np = dst_insert(dst, 1, 2);
     assert(np->val == 2);
     np = dst_find(dst, 1);
     assert(np->val == 2);
     dst_insert(dst, 1, 0x3);
     dst_insert(dst, 2, 0xff);
+    dst_insert(dst, 5, 5);
+    dst_insert(dst, 0x80000000, 0x80000000);
     np = dst_find(dst, 2);
     assert(np->val == 0xff);
     np = dst_find(dst, 1);
     assert(np->val == 3);
+    assert(dst_find(dst, 5)->val == 5);
+    assert(dst_find(dst, 0x80000000)->val == 0x80000000);
 }
 
 int main(int argc, char *argv[]) 
