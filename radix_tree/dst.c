@@ -34,6 +34,7 @@ struct dst_node* dst_node_new(dst_key_t key, dst_val_t val)
     return np;
 }
 
+// eor: end-of-recursion
 static struct dst_node** __dst_find_r(struct dst_node **npp, dst_key_t key, dst_key_t bit, unsigned eor) 
 {
     struct dst_node **nextpp;
