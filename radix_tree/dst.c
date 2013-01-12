@@ -5,7 +5,7 @@
 /* 
  * bst.c 
  *
- * A quick & slow binary search tree implementation.
+ * A quick & slow digital search tree implementation.
  *
  * 2013 fleuria
  *
