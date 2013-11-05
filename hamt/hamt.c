@@ -3,7 +3,9 @@
 #include <stddef.h>
 #include <stdlib.h>
 #include <assert.h>
+#include <limits.h>
 #include <string.h>
+#include <stdio.h>
 #include "hamt.h"
 
 #ifdef HAMT_DEBUG_ENABLE
@@ -12,13 +14,13 @@
 #define HAMT_DEBUG(fmt, ...)
 #endif
 
-#define HAMT_BITMAP_SIZE (sizeof(intptr_t) * 8)
+#define HAMT_BITMAP_SIZE (sizeof(uint32_t) * 8)
 #define HAMT_MAX_SLOTS HAMT_BITMAP_SIZE
 
 typedef intptr_t Slot;
 
 typedef struct hamt_node {
-    intptr_t bitmap;
+    uint32_t bitmap;
     Slot slots[0];
 } Node;
 
@@ -89,18 +91,18 @@ node_calc_size(uint16_t slots_count) {
 }
 
 static Node*
-node_new(Hamt *hamt, uint8_t depth, Item *item1, Item *item2)
+node_new(uint16_t slots_count)
 {
     Node *node;
 
-    node = (Node *)malloc(node_calc_size(2));
+    assert(slots_count <= HAMT_MAX_SLOTS);
+    node = (Node *)malloc(node_calc_size(slots_count));
     if (! node) {
         HAMT_DEBUG("out of memory");
         return NULL;
     }
     return node;
 }
-
 
 uint16_t
 node_slots_count(Node *node) {
@@ -109,7 +111,7 @@ node_slots_count(Node *node) {
 
 uint16_t
 node_map_slot_n(Node *node, uint16_t index) {
-    intptr_t mask = (1 << index - 1);
+    intptr_t mask = (1 << index) - 1;
 
     assert(index < HAMT_BITMAP_SIZE);
     return bitcount(node->bitmap & mask);
@@ -129,7 +131,12 @@ node_find_slot(Node *node, uint16_t index) {
 
 Node*
 node_resize(Node *node, uint16_t slots_count) {
-    return (Node *)realloc(node, node_calc_size(slots_count));
+    uint16_t slots_count2;
+
+    if (node_calc_size(slots_count2) == node_calc_size(slots_count)) {
+        return node;
+    }
+    return (Node *)realloc(node, node_calc_size(slots_count2));
 }
 
 Node*
@@ -137,13 +144,7 @@ node_resize2(Node *node, int8_t diff) {
     uint16_t slots_count;
 
     slots_count = node_slots_count(node);
-    if (slots_count == powerup(slots_count)) {
-        return node;
-    }
-    slots_count += diff;
-
-    assert(slots_count <= HAMT_MAX_SLOTS);
-    return node_resize(node, slots_count);
+    return node_resize(node, slots_count + diff);
 }
 
 /* this routine does NOT check slot overwrite, and do REALLOC 
@@ -162,21 +163,68 @@ node_insert_slot(Node *node, uint16_t index, Slot slot) {
     node = node_resize2(node, 1);
     slot_n = node_map_slot_n(node, index);
     slots_count = node_slots_count(node);
-    assert(slot_n < slots_count);
+    assert(slot_n <= HAMT_MAX_SLOTS);
+    assert(slots_count <= HAMT_MAX_SLOTS);
     memmove(
         (void*)&node->slots[slot_n], 
         (void*)&node->slots[slot_n+1], 
         slots_count - slot_n);
+    node->slots[slot_n] = slot;
+    node->bitmap |= (1 << index);
     return node;
 }
 
+void
+node_delete_slot(Node *node, uint16_t index) {
+    unsigned int slots_count, slot_n;
+
+    slot_n = node_map_slot_n(node, index);
+    memmove(
+        (void*)&node->slots[slot_n+1],
+        (void*)&node->slots[slot_n], 
+        slots_count - slot_n);
+    node->bitmap &= ~(1 << index);
+}
+
+static void
+node_dump(Node *node) {
+    unsigned int slots_count, i = 1, j = 0;
+
+    printf("node [bitmap 0x%x] \n => ", node->bitmap);
+    for (i=0; i<HAMT_MAX_SLOTS; i++) {
+        if (node->bitmap & (1 << i)) {
+            printf(" [%d]: %p ", i, (void*)node->slots[j]);
+            j++;
+        }
+    }
+    printf("\n");
+}
+
+/* hamt utilities */
+
+Slot*
+hamt_find_slotref(Hamt *hamt, uint32_t hash) {
+    return NULL;
+}
+
+Slot
+hamt_find_slot() {
+    return (Slot)NULL;
+}
+
 int main(int argc, char *argv[]){
+    Node *node1, *node2;
     assert(bitcount(0x01) == 1);
     assert(bitcount(0x02) == 1);
     assert(bitcount(0x03) == 2);
+    assert(bitcount(0x05) == 2);
     assert(bitcount(0xff) == 8);
     assert(bitcount(0xffff) == 16);
     assert(powerup(2) == 2);
     assert(powerup(3) == 4);
+    node1 = node_new(2);
+    node1 = node_insert_slot(node1, 0, (Slot)(void*)1);
+    node1 = node_insert_slot(node1, 2, (Slot)(void*)2);
+    node_dump(node1);
     return 0;
 }
