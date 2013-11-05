@@ -2,8 +2,8 @@
 #include <stdio.h>
 #include <assert.h>
 
-/* 
- * bst.c 
+/*
+ * bst.c
  *
  * A quick & slow digital search tree implementation.
  *
@@ -26,7 +26,7 @@ struct dst_node {
     struct dst_node *children[2];
 };
 
-struct dst_node* dst_node_new(dst_key_t key, dst_val_t val) 
+struct dst_node* dst_node_new(dst_key_t key, dst_val_t val)
 {
     struct dst_node *np;
 
@@ -39,7 +39,7 @@ struct dst_node* dst_node_new(dst_key_t key, dst_val_t val)
 }
 
 // eor: end-of-recursion
-static struct dst_node** __dst_find_r(struct dst_node **npp, dst_key_t key, dst_key_t bit, unsigned eor) 
+static struct dst_node** __dst_find_r(struct dst_node **npp, dst_key_t key, dst_key_t bit, unsigned eor)
 {
     struct dst_node **nextpp;
 
@@ -56,12 +56,12 @@ static struct dst_node** __dst_find_r(struct dst_node **npp, dst_key_t key, dst_
     return __dst_find_r(nextpp, key, bit >> 1, bit == 0);
 }
 
-struct dst_node* dst_find(struct dst_node *np, dst_key_t key) 
+struct dst_node* dst_find(struct dst_node *np, dst_key_t key)
 {
     return *__dst_find_r(&np, key, BIT_MSD, 0);
 }
 
-struct dst_node* dst_insert(struct dst_node *np, dst_key_t key, dst_val_t val) 
+struct dst_node* dst_insert(struct dst_node *np, dst_key_t key, dst_val_t val)
 {
     struct dst_node **npp;
     struct dst_node *new_np;
@@ -77,7 +77,7 @@ struct dst_node* dst_insert(struct dst_node *np, dst_key_t key, dst_val_t val)
     return *npp;
 }
 
-static void __test() 
+static void __test()
 {
     struct dst_node *dst, *np;
 
@@ -98,7 +98,7 @@ static void __test()
     assert(dst_find(dst, 0x80000000)->val == 0x80000000);
 }
 
-int main(int argc, char *argv[]) 
+int main(int argc, char *argv[])
 {
     __test();
     return 0;

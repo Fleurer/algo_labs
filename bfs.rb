@@ -1,4 +1,3 @@
-
 def bfs(g, root)
   q = [root]
   while q != []
@@ -25,5 +24,5 @@ g = {
 }
 
 bfs(g, 'a') {|i| puts i }
-puts '---' 
+puts '---'
 dfs(g, 'a') {|i| puts i }
