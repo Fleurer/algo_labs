@@ -113,7 +113,7 @@ int16_t
 node_map_slot_n(Node *node, uint16_t index) {
     intptr_t mask = (1 << (index + 1)) - 1;
 
-    assert(index <= HAMT_BITMAP_SIZE);
+    assert(index < HAMT_BITMAP_SIZE);
     if (node->bitmap == 0) {
         return -1;
     }
@@ -208,10 +208,23 @@ node_delete_slot(Node *node, uint16_t index) {
 }
 
 static void
+bitmap_dump(int32_t bitmap) {
+    int size, i, mask;
+
+    size = HAMT_BITMAP_SIZE;
+    for (i=0; i < size; i++) {
+        mask = 1 << i;
+        putchar(bitmap & mask? '1': '0');
+    }
+}
+
+static void
 node_dump(Node *node) {
     unsigned int slots_count, i = 1, j = 0;
 
-    printf("node [bitmap 0x%x] \n => ", node->bitmap);
+    printf("node ");
+    bitmap_dump(node->bitmap);
+    printf(" => \n");
     for (i=0; i<HAMT_MAX_SLOTS; i++) {
         if (node->bitmap & (1 << i)) {
             printf(" [%d]: %p ", i, (void*)node->slots[j]);
@@ -246,7 +259,9 @@ int main(int argc, char *argv[]){
     node1 = node_new(2);
     node_insert_slot(&node1, 0, (Slot)(void*)1);
     node_insert_slot(&node1, 2, (Slot)(void*)2);
+    node_insert_slot(&node1, 3, (Slot)(void*)3);
     node_insert_slot(&node1, 4, (Slot)(void*)4);
+    node_insert_slot(&node1, 31, (Slot)(void*)4);
     node_dump(node1); // => [0]: 0x1 [2]: 0x2
     // node_insert_slot(&node1, 100, (Slot)(void*)1); // assert error
 
