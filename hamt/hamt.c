@@ -240,6 +240,8 @@ int main(int argc, char *argv[]){
     node1 = node_new(2);
     node_insert_slot(&node1, 0, (Slot)(void*)1);
     node_insert_slot(&node1, 2, (Slot)(void*)2);
-    node_dump(node1);
+    node_dump(node1); // => [0]: 0x1 [2]: 0x2
+    // node_insert_slot(&node1, 100, (Slot)(void*)1); // assert error
+
     return 0;
 }
