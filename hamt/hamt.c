@@ -109,11 +109,14 @@ node_slots_count(Node *node) {
     return bitcount(node->bitmap);
 }
 
-uint16_t
+int16_t
 node_map_slot_n(Node *node, uint16_t index) {
-    intptr_t mask = (1 << index) - 1;
+    intptr_t mask = (1 << (index + 1)) - 1;
 
-    assert(index < HAMT_BITMAP_SIZE);
+    assert(index <= HAMT_BITMAP_SIZE);
+    if (node->bitmap == 0) {
+        return -1;
+    }
     return bitcount(node->bitmap & mask);
 }
 
@@ -153,7 +156,7 @@ node_resize2(Node *node, int8_t diff) {
 static Node*
 _node_insert_slot(Node *node, uint16_t index, Slot slot) {
     Slot *slot_p;
-    unsigned int slot_n, slots_count;
+    int slot_n, slots_count;
 
     slot_p = node_find_slot(node, index);
     if (slot_p) {
@@ -163,6 +166,8 @@ _node_insert_slot(Node *node, uint16_t index, Slot slot) {
 
     node = node_resize2(node, 1);
     slot_n = node_map_slot_n(node, index);
+    if (slot_n < 0)
+        slot_n = 0;
     slots_count = node_slots_count(node);
     assert(slot_n <= HAMT_MAX_SLOTS);
     assert(slots_count <= HAMT_MAX_SLOTS);
@@ -183,9 +188,15 @@ node_insert_slot(Node **node, uint16_t index, Slot slot) {
     return -1;
 }
 
-void
+/* return 0 if Node is empty */
+uint16_t
 node_delete_slot(Node *node, uint16_t index) {
     unsigned int slots_count, slot_n;
+
+    slots_count = node_slots_count(node);
+    if (slots_count == 0) {
+        return 0;
+    }
 
     slot_n = node_map_slot_n(node, index);
     memmove(
@@ -193,6 +204,7 @@ node_delete_slot(Node *node, uint16_t index) {
         (void*)&node->slots[slot_n], 
         slots_count - slot_n);
     node->bitmap &= ~(1 << index);
+    return slots_count - 1;
 }
 
 static void
@@ -234,6 +246,7 @@ int main(int argc, char *argv[]){
     node1 = node_new(2);
     node_insert_slot(&node1, 0, (Slot)(void*)1);
     node_insert_slot(&node1, 2, (Slot)(void*)2);
+    node_insert_slot(&node1, 4, (Slot)(void*)4);
     node_dump(node1); // => [0]: 0x1 [2]: 0x2
     // node_insert_slot(&node1, 100, (Slot)(void*)1); // assert error
 
