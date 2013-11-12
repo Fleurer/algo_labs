@@ -36,18 +36,12 @@ typedef struct hamt_vector {
     Item *items[0];
 } Vector;
 
-#define HAMT_LEAF_SLOT(p) ((Slot)((void*)(p)))
-#define HAMT_NODE_SLOT(p) ((void*)HAMT_LEAF_SLOT(p) | 1)
-#define HAMT_VECTOR_SLOT(p) (HAMT_LEAF_SLOT(p) | 2)
-
-#define _SLOT_PTR(p) ((void*)((p) & ~3))
-#define HAMT_SLOT_AS_NODE(p) ((Node*)_SLOT_PTR(p))
-#define HAMT_SLOT_AS_VECTOR(p) ((Vector*)_SLOT_PTR(p))
-#define HAMT_SLOT_AS_LEAF(p) ((Item*)_SLOT_PTR(p))
-
-#define HAMT_SLOT_IS_NODE(s) ((Slot)(void*)s & 1)
-#define HAMT_SLOT_IS_VECTOR(s) ((Slot)(void*)s & 2)
-#define HAMT_SLOT_IS_LEAF(s) (! ((Slot)(void*)s & 3))
+/* Leaf Slots: Vector Slot, Data Slot
+ * */
+#define SLOT_PTR(t, p) ((t)(void*)((Slot)(p) & ~3))
+#define VSLOT(p) ((Slot)(p) | 1)
+#define IS_VSLOT(s) ((Slot)(void*)s & 1)
+#define IS_DSLOT(s) (!IS_VSLOT(s))
 
 /* Hash Array Mapped Trie */
 
