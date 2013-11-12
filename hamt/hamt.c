@@ -153,10 +153,11 @@ node_resize2(Node *node, int8_t diff) {
     return node_resize(node, slots_count + diff);
 }
 
+
 /* this routine does NOT check slot overwrite, and do REALLOC 
  * the input node. */
-Node*
-node_insert_slot(Node *node, uint16_t index, Slot slot) {
+static Node*
+_node_insert_slot(Node *node, uint16_t index, Slot slot) {
     Slot *slot_p;
     unsigned int slot_n, slots_count;
 
@@ -178,6 +179,14 @@ node_insert_slot(Node *node, uint16_t index, Slot slot) {
     node->slots[slot_n] = slot;
     node->bitmap |= (1 << index);
     return node;
+}
+
+int
+node_insert_slot(Node **node, uint16_t index, Slot slot) {
+    *node = _node_insert_slot(*node, index, slot);
+    if (*node)
+        return 0;
+    return -1;
 }
 
 void
@@ -229,8 +238,8 @@ int main(int argc, char *argv[]){
     assert(powerup(2) == 2);
     assert(powerup(3) == 4);
     node1 = node_new(2);
-    node1 = node_insert_slot(node1, 0, (Slot)(void*)1);
-    node1 = node_insert_slot(node1, 2, (Slot)(void*)2);
+    node_insert_slot(&node1, 0, (Slot)(void*)1);
+    node_insert_slot(&node1, 2, (Slot)(void*)2);
     node_dump(node1);
     return 0;
 }
