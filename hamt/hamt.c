@@ -14,8 +14,14 @@
 #define HAMT_DEBUG(fmt, ...)
 #endif
 
-#define HAMT_BITMAP_SIZE (sizeof(uint32_t) * 8)
+/* key_size: 32
+ * bitmap_size: 32
+ * max_depth: roundup(key_size / log(bitmap_size)) = 7
+ * */
+#define HAMT_KEY_SIZE 32
+#define HAMT_BITMAP_SIZE 32
 #define HAMT_MAX_SLOTS HAMT_BITMAP_SIZE
+#define HAMT_MAX_DEPTH 7
 
 typedef intptr_t Slot;
 
@@ -165,7 +171,7 @@ node_insert_slot(Node *node, uint16_t index, Slot slot) {
     slots_count = node_slots_count(node);
     assert(slot_n <= HAMT_MAX_SLOTS);
     assert(slots_count <= HAMT_MAX_SLOTS);
-    memmove(
+    memcpy(
         (void*)&node->slots[slot_n], 
         (void*)&node->slots[slot_n+1], 
         slots_count - slot_n);
