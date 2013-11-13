@@ -98,12 +98,18 @@ node_slots_count(Node *node) {
     return bitcount(node->bitmap);
 }
 
+uint16_t
+node_max_slots_count(Node *node) {
+    size_t slots_count = node_slots_count(node);
+    return node_calc_size(slots_count) - sizeof(Node);
+}
+
 static Node*
 node_new(uint16_t slots_count)
 {
     Node *node;
     Node node_zero = {0, };
-    int real_slots_count, i;
+    int max_slots, i;
 
     assert(slots_count <= HAMT_MAX_SLOTS);
     node = (Node *)malloc(node_calc_size(slots_count));
@@ -113,8 +119,8 @@ node_new(uint16_t slots_count)
     }
     *node = node_zero;
 
-    real_slots_count = node_slots_count(node);
-    for (i=0; i<real_slots_count; i++) {
+    max_slots = node_max_slots_count(node);
+    for (i=0; i<max_slots; i++) {
         node->slots[i] = EMPTY_SLOT;
     }
     return node;
@@ -130,9 +136,6 @@ node_map_slot_n(Node *node, uint8_t index) {
         (1 << (index+1)) - 1;
 
     assert(index < HAMT_BITMAP_SIZE);
-    if (node->bitmap == 0) {
-        return -1;
-    }
     return bitcount(node->bitmap & mask);
 }
 
@@ -149,8 +152,8 @@ node_find_slot(Node *node, uint16_t index) {
 }
 
 Node*
-node_resize(Node *node, uint16_t slots_count) {
-    uint16_t slots_count2;
+node_resize(Node *node, uint16_t slots_count2) {
+    uint16_t slots_count = node_slots_count(node);
 
     if (node_calc_size(slots_count2) == node_calc_size(slots_count)) {
         return node;
@@ -166,13 +169,13 @@ node_resize2(Node *node, int8_t diff) {
     return node_resize(node, slots_count + diff);
 }
 
-
 /* this routine does NOT check slot overwrite, and do REALLOC 
  * the input node. */
 static Node*
 _node_insert_slot(Node *node, uint16_t index, Slot slot) {
     Slot *slot_p;
     int slot_n, slots_count;
+    int i;
 
     slot_p = node_find_slot(node, index);
     if (slot_p) {
@@ -181,18 +184,13 @@ _node_insert_slot(Node *node, uint16_t index, Slot slot) {
     }
 
     node = node_resize2(node, 1);
-    slot_n = node_map_slot_n(node, index);
-    if (slot_n < 0)
-        slot_n = 0;
     slots_count = node_slots_count(node);
+    slot_n = node_map_slot_n(node, index);
     assert(slot_n <= HAMT_MAX_SLOTS);
     assert(slots_count <= HAMT_MAX_SLOTS);
-    if (node->slots[slot_n] == EMPTY_SLOT) {
-        printf("memmove: slots_count: %d slot_n: %d", slots_count, slot_n);
-        memmove(
-            (void*)&node->slots[slot_n], 
-            (void*)&node->slots[slot_n+1], 
-            slots_count - slot_n);
+    printf("slots_count: %d slot_n: %d sizeof(Slot): %ld\n", slots_count, slot_n, sizeof(Slot));
+    for (i=slots_count; i>slot_n; i--) {
+        node->slots[i] = node->slots[i-1];
     }
     node->slots[slot_n] = slot;
     node->bitmap |= (1 << index);
@@ -290,19 +288,20 @@ int main(int argc, char *argv[]){
     assert(powerup(2) == 2);
     assert(powerup(3) == 4);
     node1 = node_new(2);
-    node_insert_slot(&node1, 0, (Slot)(void*)1);
+    node_insert_slot(&node1, 0, (Slot)(void*)0);
     node_dump(node1);
     node_insert_slot(&node1, 1, (Slot)(void*)1);
+    node_dump(node1);
+    node_insert_slot(&node1, 4, (Slot)(void*)4);
+    node_dump(node1);
     node_insert_slot(&node1, 2, (Slot)(void*)2);
     node_dump(node1);
     node_insert_slot(&node1, 3, (Slot)(void*)3);
-    node_insert_slot(&node1, 4, (Slot)(void*)4);
     node_insert_slot(&node1, 28, (Slot)(void*)28);
     node_insert_slot(&node1, 29, (Slot)(void*)29);
-    node_dump(node1);
     node_insert_slot(&node1, 30, (Slot)(void*)30);
     node_insert_slot(&node1, 31, (Slot)(void*)31);
-    node_dump(node1);
+    node_insert_slot(&node1, 31, (Slot)(void*)31);
     // node_insert_slot(&node1, 100, (Slot)(void*)1); // assert error
 
     return 0;
