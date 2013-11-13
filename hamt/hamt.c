@@ -42,6 +42,7 @@ typedef struct hamt_vector {
 #define VSLOT(p) ((Slot)(p) | 1)
 #define IS_VSLOT(s) ((Slot)(void*)s & 1)
 #define IS_DSLOT(s) (!IS_VSLOT(s))
+#define EMPTY_SLOT 0xfffffff
 
 /* Hash Array Mapped Trie */
 
@@ -51,6 +52,8 @@ typedef struct hamt {
 } Hamt;
 
 /* Bitmap Utilities */
+
+static void bitmap_dump(int32_t bitmap);
 
 /* count the set bits from a bitmap */
 static uint8_t bitcount(uint32_t bitmap) {
@@ -80,28 +83,14 @@ powerup(unsigned int n)
 /* hamt_node Utilities */
 
 /* ensure sizeof(Node) is power of two */
-uint16_t
+size_t
 node_calc_size(uint16_t slots_count) {
-    uint16_t power = 2;
+    size_t power = 2;
 
     while (power < (sizeof(Node) + slots_count * sizeof(Slot))) {
-        power <<= 1;
+        power <<= 2;
     }
     return power;
-}
-
-static Node*
-node_new(uint16_t slots_count)
-{
-    Node *node;
-
-    assert(slots_count <= HAMT_MAX_SLOTS);
-    node = (Node *)malloc(node_calc_size(slots_count));
-    if (! node) {
-        HAMT_DEBUG("out of memory");
-        return NULL;
-    }
-    return node;
 }
 
 uint16_t
@@ -109,9 +98,36 @@ node_slots_count(Node *node) {
     return bitcount(node->bitmap);
 }
 
+static Node*
+node_new(uint16_t slots_count)
+{
+    Node *node;
+    Node node_zero = {0, };
+    int real_slots_count, i;
+
+    assert(slots_count <= HAMT_MAX_SLOTS);
+    node = (Node *)malloc(node_calc_size(slots_count));
+    if (! node) {
+        HAMT_DEBUG("out of memory");
+        return NULL;
+    }
+    *node = node_zero;
+
+    real_slots_count = node_slots_count(node);
+    for (i=0; i<real_slots_count; i++) {
+        node->slots[i] = EMPTY_SLOT;
+    }
+    return node;
+}
+
 int16_t
-node_map_slot_n(Node *node, uint16_t index) {
-    intptr_t mask = (1 << (index + 1)) - 1;
+node_map_slot_n(Node *node, uint8_t index) {
+    uint64_t mask;
+        
+    /* intel processor masks the shift count to 5 bits (maximum 31).*/
+    mask = (index == 31) ? \
+        0xffffffff: \
+        (1 << (index+1)) - 1;
 
     assert(index < HAMT_BITMAP_SIZE);
     if (node->bitmap == 0) {
@@ -171,10 +187,13 @@ _node_insert_slot(Node *node, uint16_t index, Slot slot) {
     slots_count = node_slots_count(node);
     assert(slot_n <= HAMT_MAX_SLOTS);
     assert(slots_count <= HAMT_MAX_SLOTS);
-    memcpy(
-        (void*)&node->slots[slot_n], 
-        (void*)&node->slots[slot_n+1], 
-        slots_count - slot_n);
+    if (node->slots[slot_n] == EMPTY_SLOT) {
+        printf("memmove: slots_count: %d slot_n: %d", slots_count, slot_n);
+        memmove(
+            (void*)&node->slots[slot_n], 
+            (void*)&node->slots[slot_n+1], 
+            slots_count - slot_n);
+    }
     node->slots[slot_n] = slot;
     node->bitmap |= (1 << index);
     return node;
@@ -236,6 +255,20 @@ node_dump(Node *node) {
 
 /* hamt utilities */
 
+Hamt*
+hamt_new() {
+    Hamt *hamt;
+    Hamt hamt_zero = { 0, };
+    
+    hamt = (Hamt*)malloc(sizeof(Hamt));
+    if (! hamt) {
+        HAMT_DEBUG("out of memory");
+        return NULL;
+    }
+    *hamt = hamt_zero;
+    return hamt;
+}
+
 Slot*
 hamt_find_slotref(Hamt *hamt, uint32_t hash) {
     return NULL;
@@ -258,11 +291,18 @@ int main(int argc, char *argv[]){
     assert(powerup(3) == 4);
     node1 = node_new(2);
     node_insert_slot(&node1, 0, (Slot)(void*)1);
+    node_dump(node1);
+    node_insert_slot(&node1, 1, (Slot)(void*)1);
     node_insert_slot(&node1, 2, (Slot)(void*)2);
+    node_dump(node1);
     node_insert_slot(&node1, 3, (Slot)(void*)3);
     node_insert_slot(&node1, 4, (Slot)(void*)4);
-    node_insert_slot(&node1, 31, (Slot)(void*)4);
-    node_dump(node1); // => [0]: 0x1 [2]: 0x2
+    node_insert_slot(&node1, 28, (Slot)(void*)28);
+    node_insert_slot(&node1, 29, (Slot)(void*)29);
+    node_dump(node1);
+    node_insert_slot(&node1, 30, (Slot)(void*)30);
+    node_insert_slot(&node1, 31, (Slot)(void*)31);
+    node_dump(node1);
     // node_insert_slot(&node1, 100, (Slot)(void*)1); // assert error
 
     return 0;
