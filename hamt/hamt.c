@@ -42,7 +42,6 @@ typedef struct hamt_vector {
 #define VSLOT(p) ((Slot)(p) | 1)
 #define IS_VSLOT(s) ((Slot)(void*)s & 1)
 #define IS_DSLOT(s) (!IS_VSLOT(s))
-#define EMPTY_SLOT 0xfffffff
 
 /* Hash Array Mapped Trie */
 
@@ -108,21 +107,17 @@ static Node*
 node_new(uint16_t slots_count)
 {
     Node *node;
-    Node node_zero = {0, };
-    int max_slots, i;
+    int max_slots, i, size;
 
     assert(slots_count <= HAMT_MAX_SLOTS);
-    node = (Node *)malloc(node_calc_size(slots_count));
+    size = node_calc_size(slots_count);
+    node = (Node *)malloc(size);
     if (! node) {
         HAMT_DEBUG("out of memory");
         return NULL;
     }
-    *node = node_zero;
-
+    memset((void*)node, 0, size);
     max_slots = node_max_slots_count(node);
-    for (i=0; i<max_slots; i++) {
-        node->slots[i] = EMPTY_SLOT;
-    }
     return node;
 }
 
@@ -144,6 +139,7 @@ node_find_slot(Node *node, uint16_t index) {
     uint16_t slot_n;
     intptr_t mask = 1 << index;
 
+    assert(index <= 31);
     if (! (node->bitmap & mask)) {
         return NULL;
     }
@@ -208,17 +204,25 @@ node_insert_slot(Node **node, uint16_t index, Slot slot) {
 uint16_t
 node_delete_slot(Node *node, uint16_t index) {
     unsigned int slots_count, slot_n;
+    Slot *slot_p;
+    Slot swap;
+    int i;
 
     slots_count = node_slots_count(node);
     if (slots_count == 0) {
         return 0;
     }
 
+    slot_p = node_find_slot(node, index);
+    if (! slot_p) {
+        return slots_count;
+    }
+
     slot_n = node_map_slot_n(node, index);
-    memmove(
-        (void*)&node->slots[slot_n+1],
-        (void*)&node->slots[slot_n], 
-        slots_count - slot_n);
+    for (i=slot_n; i<slots_count; i++) {
+        node->slots[i] = node->slots[i+1];
+    }
+    node->slots[slots_count] = 0;
     node->bitmap &= ~(1 << index);
     return slots_count - 1;
 }
