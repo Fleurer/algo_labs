@@ -218,6 +218,9 @@ node_delete_slot(Node *node, uint16_t index) {
         return slots_count;
     }
 
+    /* potienal optimization: just mark the slot as NULL, and take care on this
+     * in insert(). it is fine because slot always store pointers.
+     * */
     slot_n = node_map_slot_n(node, index);
     for (i=slot_n; i<slots_count; i++) {
         node->slots[i] = node->slots[i+1];
