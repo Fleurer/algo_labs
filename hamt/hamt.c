@@ -188,7 +188,6 @@ _node_insert_slot(Node *node, uint16_t index, Slot slot) {
     slot_n = node_map_slot_n(node, index);
     assert(slot_n <= HAMT_MAX_SLOTS);
     assert(slots_count <= HAMT_MAX_SLOTS);
-    printf("slots_count: %d slot_n: %d sizeof(Slot): %ld\n", slots_count, slot_n, sizeof(Slot));
     for (i=slots_count; i>slot_n; i--) {
         node->slots[i] = node->slots[i-1];
     }
