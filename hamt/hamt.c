@@ -32,7 +32,7 @@ typedef struct hamt_node {
 
 /* to store the hash collision keys at the bottom of HAMT */
 typedef struct hamt_vector {
-    int32_t length;
+    int32_t count;
     Item *items[0];
 } Vector;
 
@@ -79,17 +79,22 @@ powerup(unsigned int n)
     return power;
 }
 
+size_t
+power_up_size(size_t base_size, size_t elm_size, size_t count) {
+    size_t power = 2;
+
+    while (power < (base_size + count * elm_size)) {
+        power <<= 2;
+    }
+    return power;
+}
+
 /* hamt_node Utilities */
 
 /* ensure sizeof(Node) is power of two */
 size_t
 node_calc_size(uint16_t slots_count) {
-    size_t power = 2;
-
-    while (power < (sizeof(Node) + slots_count * sizeof(Slot))) {
-        power <<= 2;
-    }
-    return power;
+    power_up_size(sizeof(Node), sizeof(Slot), slots_count);
 }
 
 uint16_t
@@ -256,6 +261,28 @@ node_dump(Node *node) {
     printf("\n");
 }
 
+/* vector utilities */
+
+Vector*
+vector_new(uint16_t count) {
+    Vector *vector;
+    uint32_t size;
+
+    size = sizeof(Vector) + sizeof(Item*) * count;
+    vector = (Vector*)malloc(size);
+    if (! vector) {
+        HAMT_DEBUG("out of memory");
+        return NULL;
+    }
+    memset(vector, 0, size);
+    vector->count = count;
+    return vector;
+}
+
+size_t 
+vector_append(Vector *vector, Item *item) {
+}
+
 /* hamt utilities */
 
 Hamt*
@@ -303,10 +330,11 @@ int main(int argc, char *argv[]){
     node_dump(node1);
     node_insert_slot(&node1, 3, (Slot)(void*)3);
     node_insert_slot(&node1, 28, (Slot)(void*)28);
+    node_insert_slot(&node1, 31, (Slot)(void*)31);
     node_insert_slot(&node1, 29, (Slot)(void*)29);
     node_insert_slot(&node1, 30, (Slot)(void*)30);
     node_insert_slot(&node1, 31, (Slot)(void*)31);
-    node_insert_slot(&node1, 31, (Slot)(void*)31);
+    node_dump(node1);
     // node_insert_slot(&node1, 100, (Slot)(void*)1); // assert error
 
     return 0;
