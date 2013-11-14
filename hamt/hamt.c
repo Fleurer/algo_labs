@@ -80,7 +80,7 @@ powerup(unsigned int n)
 }
 
 size_t
-power_up_size(size_t base_size, size_t elm_size, size_t count) {
+powerup_size(size_t base_size, size_t elm_size, size_t count) {
     size_t power = 2;
 
     while (power < (base_size + count * elm_size)) {
@@ -94,7 +94,7 @@ power_up_size(size_t base_size, size_t elm_size, size_t count) {
 /* ensure sizeof(Node) is power of two */
 size_t
 node_calc_size(uint16_t slots_count) {
-    power_up_size(sizeof(Node), sizeof(Slot), slots_count);
+    return powerup_size(sizeof(Node), sizeof(Slot), slots_count);
 }
 
 uint16_t
@@ -105,7 +105,7 @@ node_slots_count(Node *node) {
 uint16_t
 node_max_slots_count(Node *node) {
     size_t slots_count = node_slots_count(node);
-    return node_calc_size(slots_count) - sizeof(Node);
+    return (node_calc_size(slots_count) - sizeof(Node)) / sizeof(Slot);
 }
 
 static Node*
@@ -263,12 +263,22 @@ node_dump(Node *node) {
 
 /* vector utilities */
 
+size_t
+vector_calc_size(size_t count) {
+    return powerup_size(sizeof(Vector), sizeof(Item*), count);
+}
+
+size_t
+vector_max_items_count(Vector *vector) {
+    return (vector_calc_size(vector->count) - sizeof(Vector)) / sizeof(Item*);
+}
+
 Vector*
 vector_new(uint16_t count) {
     Vector *vector;
     uint32_t size;
 
-    size = sizeof(Vector) + sizeof(Item*) * count;
+    size = vector_calc_size(count);
     vector = (Vector*)malloc(size);
     if (! vector) {
         HAMT_DEBUG("out of memory");
