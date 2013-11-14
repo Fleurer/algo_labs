@@ -208,8 +208,7 @@ node_delete_slot(Node *node, uint16_t index) {
     Slot swap;
     int i;
 
-    slots_count = node_slots_count(node);
-    if (slots_count == 0) {
+    if (node->bitmap == 0) {
         return 0;
     }
 
