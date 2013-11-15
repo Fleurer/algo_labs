@@ -258,38 +258,8 @@ node_dump(Node *node) {
 
 /* vector utilities */
 
-size_t
-vector_calc_size(size_t count) {
-    return powerup_size(sizeof(Vector), sizeof(Item*), count);
-}
-
-size_t
-vector_max_items_count(Vector *vector) {
-    return (vector_calc_size(vector->count) - sizeof(Vector)) / sizeof(Item*);
-}
-
-Vector*
-vector_new(uint16_t count) {
-    Vector *vector;
-    uint32_t size;
-
-    size = vector_calc_size(count);
-    vector = (Vector*)malloc(size);
-    if (! vector) {
-        HAMT_DEBUG("out of memory");
-        return NULL;
-    }
-    memset(vector, 0, size);
-    vector->count = count;
-    return vector;
-}
-
-Vector*
-_vector_append(Vector *vector, Item *item) {
-}
-
 size_t 
-vector_append(Vector *vector, Item *item) {
+vnode_append(Node *vnode, Item *item) {
 }
 
 
