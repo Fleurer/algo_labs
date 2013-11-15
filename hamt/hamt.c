@@ -102,9 +102,8 @@ node_slots_count(Node *node) {
     return bitcount(node->bitmap);
 }
 
-uint16_t
-node_max_slots_count(Node *node) {
-    size_t slots_count = node_slots_count(node);
+size_t
+node_max_slots_count(size_t slots_count) {
     return (node_calc_size(slots_count) - sizeof(Node)) / sizeof(Slot);
 }
 
@@ -112,7 +111,7 @@ static Node*
 node_new(uint16_t slots_count)
 {
     Node *node;
-    int max_slots, i, size;
+    int i, size;
 
     assert(slots_count <= HAMT_MAX_SLOTS);
     size = node_calc_size(slots_count);
@@ -122,7 +121,6 @@ node_new(uint16_t slots_count)
         return NULL;
     }
     memset((void*)node, 0, size);
-    max_slots = node_max_slots_count(node);
     return node;
 }
 
@@ -289,9 +287,14 @@ vector_new(uint16_t count) {
     return vector;
 }
 
+Vector*
+_vector_append(Vector *vector, Item *item) {
+}
+
 size_t 
 vector_append(Vector *vector, Item *item) {
 }
+
 
 /* hamt utilities */
 
