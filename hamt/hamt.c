@@ -26,15 +26,12 @@
 typedef intptr_t Slot;
 
 typedef struct hamt_node {
-    uint32_t bitmap;
+    union {
+        uint32_t bitmap;
+        uint32_t size;
+    };
     Slot slots[0];
 } Node;
-
-/* to store the hash collision keys at the bottom of HAMT */
-typedef struct hamt_vector {
-    int32_t count;
-    Item *items[0];
-} Vector;
 
 /* Leaf Slots: Vector Slot, Data Slot
  * */
